@@ -7,8 +7,8 @@
 #include <condition_variable>
 
 using namespace std;
-mutex mtx, landing_mtx, service_mtx;
-condition_variable cv_landing, cv_service, cv_landed;
+mutex mtx, landing_mtx, service_mtx, fuel_mtx;
+condition_variable cv_landing, cv_service, cv_landed, cv_fuel;
 
 
 const int aircrafts = 5;
@@ -17,6 +17,9 @@ const int runways = 2;
 const int parking_spaces = 2;
 const int capability = 150;
 int fuel = 99;
+int Fuel[5];
+
+
 
 
 
@@ -45,11 +48,11 @@ void showStatus(){
   mvprintw(2,30,"In the air: %d", aircrafts_in_the_air);
   mvprintw(2,45,"On ground: %d", aircrafts_on_ground);
 
-  mvprintw(6,5,"circling:  %d", circling );
-  mvprintw(7,5,"landing:   %d", landing );
-  mvprintw(8,5,"taxiing:   %d", taxiing );
-  mvprintw(9,5,"service:   %d", service );
-  mvprintw(10,5,"departure: %d", departure );
+  // mvprintw(6,5,"circling:  %d", circling );
+  // mvprintw(7,5,"landing:   %d", landing );
+  // mvprintw(8,5,"taxiing:   %d", taxiing );
+  // mvprintw(9,5,"service:   %d", service );
+  // mvprintw(10,5,"departure: %d", departure );
 
   
   
@@ -107,18 +110,18 @@ void showRunway(){
 
 void showStatusAircraft(int tID, int position, int fuel){
   
-  //std::lock_guard<std::mutex> mtx1_lock(mtx);
-  mtx.lock();
+        mtx.lock();
+
   {
   if(position == 0)
   {
-    if(fuel<=0){
+    if(Fuel[tID]<=0){
       attron(COLOR_PAIR(1));
     }
 	      mvprintw(7+tID*8,35,"     @@  Flying...");
 	      mvprintw(8+tID*8,35,"@     @@@");
         mvprintw(9+tID*8,35,"@@     @@@@");
-        mvprintw(10+tID*8,35,"@@-%d-@@@-%d-@@@@@@>", fuel, tID);   
+        mvprintw(10+tID*8,35,"@@-%d-@@@-%d-@@@@@@>", Fuel[tID], tID);   
         mvprintw(11+tID*8,35,"@@     @@@@");
         mvprintw(12+tID*8,35,"@     @@@");
 	      mvprintw(13+tID*8,35,"     @@");
@@ -128,6 +131,7 @@ void showStatusAircraft(int tID, int position, int fuel){
   
   else
   {
+
     for(int i=35;i<145;i++)
         {
             for(int j=7;j<=13;j++)
@@ -146,14 +150,9 @@ void showStatusAircraft(int tID, int position, int fuel){
             refresh();
             usleep(20000);
         }
-
-    
-
-     //mtx.unlock();
+    }
   }
-  }
-  
-mtx.unlock();
+  mtx.unlock();
 }
 
 void showStatusAircraft2(int tID, int position){
@@ -210,10 +209,10 @@ void clearStatusAircraft(int tID, int i){
 
 void showService(int tID)
 {
-  mtx.lock();
+   mtx.lock();
   
 
-  for (int i=0; i<100; i++){
+  for (int i=0; i<10; i++){
        attron(COLOR_PAIR(2));
 
               mvprintw(7+tID*8,144,"     @@   Refueling...");
@@ -226,7 +225,7 @@ void showService(int tID)
               refresh();
                attron(COLOR_PAIR(3));
 
-              usleep(20000);
+              usleep(200000);
               
               mvprintw(7+tID*8,144,"                       ");
 	            mvprintw(8+tID*8,144,"                       ");
@@ -242,59 +241,44 @@ void showService(int tID)
 mtx.unlock();
 }
 
-// void landingg(){
-//   landing++;
-//   mvprintw(30,60,"fadfafdas: %d", landing);
-  
-// }
 
-void showStats(int tID, int fuel, bool landing, bool landed){
+// void showStats(int tID, int fuel, bool landing, bool landed){
 
-        // mtx.lock();
-	      mvprintw(7+tID*8,10,"tID: %d",tID);
-        mvprintw(8+tID*8,10,"fuel %d",fuel);
-        mvprintw(9+tID*8,10,"Landing: %", landing);
-        mvprintw(10+tID*8,10,"Landed: %bool", landed);
-        refresh();
-        // mtx.unlock();
+//         // mtx.lock();
+// 	      mvprintw(7+tID*8,10,"tID: %d",tID);
+//         mvprintw(8+tID*8,10,"fuel %d",Fuel[tID]);
+//         mvprintw(9+tID*8,10,"Landing: %", landing);
+//         mvprintw(10+tID*8,10,"Landed: %bool", landed);
+//         refresh();
+//         // mtx.unlock();
 	
-}
+// }
 
 void startThreadFuel(int tID){
 
 while(1){
-  
 
-  
-  // usleep(rand()%1000000);
-  // mtx.lock();
-  // fuel--;
-  // //showStatusAircraft(tID, 0, fuel);
-  // mvprintw(15+tID,5,"%d Fuel: %d %", tID, fuel);
-  // mvprintw(10+tID*8,35,"@@-%d-@@@-%d-@@@@@@>", fuel, tID);
-
-  // mtx.unlock();
-  // //refresh();
-  // //usleep(1000000);
-  // mvprintw(10+tID*8,35,"@@-%d-@@@-%d-@@@@@@>", fuel, tID);
-}
+   usleep(/* rand()%*/100000);
+   Fuel[tID]--;
+  // service_mtx.lock();    //service_mtx
+        mvprintw(7+tID*8,10,"tID: %d",tID);
+        mvprintw(8+tID*8,10,"fuel %d",Fuel[tID]);
+        refresh();
+// service_mtx.unlock();  //service_mtx
+  }
 }
 
 void startThreadAircraft(int tID){
 
-  //startThreadFuel(tID);
-
   while(1){
-    usleep(rand()%1000000);
-    fuel--;
+    usleep(rand()%1000);
+    //fuel--;
     showStatusAircraft(tID, 0, fuel);
     
     std::unique_lock<mutex> lck(landing_mtx);
-    //while(landing){
-       //usleep(rand()%10000);
      cv_landing.wait(lck, []{
        
-       return landing == false && landed < 2;
+       return (landing == false && landed <= 2);
      });
      
         landing = true;
@@ -302,19 +286,28 @@ void startThreadAircraft(int tID){
         showStatusAircraft(tID, 1, fuel);
         usleep(100000);
         clearStatusAircraft(tID, 1);
-lck.unlock();
-cv_landing.notify_all();
+        lck.unlock();
+        cv_landing.notify_one();
 
+        
+        std::unique_lock<mutex> lck2(service_mtx);
+        cv_service.wait(lck2, []{
+       
+       return (service == false);
+     });
+        service = true;
         showService(tID);
         
+
         showStatusAircraft2(tID, 144);
-        //mtx.lock();
-        fuel=99;
-        //mtx.unlock();
-        
+        fuel_mtx.lock();
+        Fuel[tID] = 99;
+        fuel_mtx.unlock();
+
         clearStatusAircraft(tID, 0);
         showStatusAircraft(tID, 0, fuel);
-
+        lck2.unlock();
+        cv_service.notify_one();
     }
 }
 
@@ -327,8 +320,6 @@ void startControlTower(int tID){
     std::lock_guard<std::mutex> lck(landing_mtx);
     landing = false;
     landed--;
-
-    //usleep(100000);
     cv_landing.notify_all();
     
   }
@@ -337,9 +328,9 @@ void startControlTower(int tID){
 void startGroundService(int tID){
   while(1)
   {
-    std::unique_lock<std::mutex> lck(mtx);
-    service = true;
-    cv_service.notify_one();
+    std::lock_guard<std::mutex> lck(service_mtx);
+    service = false;
+    cv_service.notify_all();
   }
 }
 
@@ -368,6 +359,9 @@ int main()
   
   curs_set(0);
 
+for(int i =0; i<aircrafts; i++){
+  Fuel[i] = 99;
+}
   
 
 //----------------THREADS------------------
@@ -406,8 +400,6 @@ thread ThreadFuel[aircrafts];
   
 
 //-----------------------------------------
-
-
 
 
 
